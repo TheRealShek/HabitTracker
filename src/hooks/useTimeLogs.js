@@ -14,7 +14,7 @@ export const useTimeLogs = (filterWeek = true, weekOffset = 0) => {
   return useQuery({
     queryKey: filterWeek 
       ? timeLogKeys.week(addWeeks(startOfWeek(new Date(), { weekStartsOn: 1 }), weekOffset).toISOString()) 
-      : timeLogKeys.week(addWeeks(startOfWeek(new Date(), { weekStartsOn: 1 }), weekOffset).toISOString()),
+      : timeLogKeys.allTime(),
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser()
       
@@ -24,11 +24,14 @@ export const useTimeLogs = (filterWeek = true, weekOffset = 0) => {
         .eq('user_id', user.id)
         .order('timestamp', { ascending: false })
 
-      // Always filter by the week (current week + offset)
-      const targetWeekStart = addWeeks(startOfWeek(new Date(), { weekStartsOn: 1 }), weekOffset)
-      const start = startOfWeek(targetWeekStart, { weekStartsOn: 1 })
-      const end = endOfWeek(targetWeekStart, { weekStartsOn: 1 })
-      query = query.gte('timestamp', start.toISOString()).lte('timestamp', end.toISOString())
+      if (filterWeek) {
+        // Filter by the specific week (current week + offset)
+        const targetWeekStart = addWeeks(startOfWeek(new Date(), { weekStartsOn: 1 }), weekOffset)
+        const start = startOfWeek(targetWeekStart, { weekStartsOn: 1 })
+        const end = endOfWeek(targetWeekStart, { weekStartsOn: 1 })
+        query = query.gte('timestamp', start.toISOString()).lte('timestamp', end.toISOString())
+      }
+      // If filterWeek is false, don't add any date filters (get all data)
 
       const { data, error } = await query
 
