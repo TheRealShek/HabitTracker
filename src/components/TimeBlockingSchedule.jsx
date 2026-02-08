@@ -99,9 +99,15 @@ const TimeBlockingSchedule = ({ logs, onUpdate, activities: customActivities, we
         const displayHour12 = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour
         const ampm = isPM ? 'PM' : 'AM'
         
+        const endMinute = minute === 0 ? 30 : 0
+        const endHour = minute === 30 ? (hour + 1) : hour
+        const endIsPM = endHour >= 12
+        const endDisplayHour = endHour > 12 ? endHour - 12 : endHour === 0 || endHour === 24 ? 12 : endHour
+        const endAmpm = endIsPM ? 'PM' : 'AM'
+        
         slots.push({
           value: `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`,
-          display: `${displayHour12}:${minute.toString().padStart(2, '0')} ${ampm}`,
+          display: `${displayHour12}:${minute.toString().padStart(2, '0')} ${ampm} - ${endDisplayHour}:${endMinute.toString().padStart(2, '0')} ${endAmpm}`,
           isNextDay: false
         })
       }
@@ -110,12 +116,12 @@ const TimeBlockingSchedule = ({ logs, onUpdate, activities: customActivities, we
     // End with 12:00 AM and 12:30 AM (from next day)
     slots.push({
       value: '00:00',
-      display: '12:00 AM',
+      display: '12:00 AM - 12:30 AM',
       isNextDay: true
     })
     slots.push({
       value: '00:30',
-      display: '12:30 AM',
+      display: '12:30 AM - 1:00 AM',
       isNextDay: true
     })
     
