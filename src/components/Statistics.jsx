@@ -146,25 +146,25 @@ const Statistics = ({ onBack }) => {
     <div className="min-h-screen bg-background">
       {/* Header - Match Dashboard style */}
       <header className="border-b border-border">
-        <div className="max-w-7xl mx-auto px-6 py-3">
-          <div className="flex items-center justify-between bg-surface rounded-full px-4 py-2 border border-border shadow-sm">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-0 sm:justify-between bg-surface rounded-2xl sm:rounded-full px-3 sm:px-4 py-3 sm:py-2 border border-border shadow-sm">
             {/* Left - Back button and title */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <button
                 onClick={onBack}
-                className="p-1.5 hover:bg-accent/10 text-text-secondary hover:text-accent rounded-lg transition-colors"
+                className="p-1.5 hover:bg-accent/10 text-text-secondary hover:text-accent rounded-lg transition-colors flex-shrink-0"
                 title="Back to Dashboard"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
               </button>
-              <div className="w-8 h-8 bg-accent rounded-full flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-accent rounded-full flex items-center justify-center flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
               </div>
-              <span className="text-base font-semibold text-text-primary">Statistics</span>
+              <span className="text-sm sm:text-base font-semibold text-text-primary">Statistics</span>
             </div>
             
             {/* Right - Time Range Selector */}
@@ -173,7 +173,7 @@ const Statistics = ({ onBack }) => {
                 <button
                   key={range}
                   onClick={() => setTimeRange(range)}
-                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                  className={`px-2 sm:px-3 py-1 rounded-md text-[10px] sm:text-xs font-medium transition-colors whitespace-nowrap ${
                     timeRange === range
                       ? 'bg-accent text-white'
                       : 'text-text-secondary hover:text-text-primary'
@@ -252,11 +252,11 @@ const Statistics = ({ onBack }) => {
         <div className="space-y-6">
           {/* Time Series Chart */}
           <div className="bg-surface rounded-lg border border-border p-4 overflow-hidden">
-            <h2 className="text-lg font-bold text-text-primary mb-3">
+            <h2 className="text-base sm:text-lg font-bold text-text-primary mb-3">
               Activity Over Time
             </h2>
-            <ResponsiveContainer width="100%" height={350}>
-              <BarChart data={timeSeriesData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <ResponsiveContainer width="100%" height={300} className="sm:h-[350px]">
+              <BarChart data={timeSeriesData} margin={{ top: 10, right: 5, left: -25, bottom: 0 }}>
                 <defs>
                   {activities.map((activity, idx) => (
                     <linearGradient key={activity} id={`gradient-${idx}`} x1="0" y1="0" x2="0" y2="1">

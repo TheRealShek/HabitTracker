@@ -176,20 +176,25 @@ const TimeBlockingSchedule = ({ logs, onUpdate, activities: customActivities }) 
 
   return (
     <div className="bg-surface rounded-lg border border-border overflow-hidden">
+      {/* Mobile scroll hint */}
+      <div className="sm:hidden bg-accent/10 border-b border-accent/30 px-3 py-2 text-center">
+        <p className="text-xs text-accent font-medium">← Swipe to view all days →</p>
+      </div>
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
+        <table className="w-full border-collapse min-w-[800px]">
           <thead>
             <tr className="bg-background">
-              <th className="px-3 py-3 text-left text-xs font-medium text-text-secondary uppercase border-r border-border sticky left-0 bg-background z-10 min-w-[100px]">
+              <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-text-secondary uppercase border-r border-border sticky left-0 bg-background z-10 w-[70px] sm:w-[100px]">
                 Time
               </th>
               {daysOfWeek.map((day) => (
                 <th
                   key={day.toISOString()}
-                  className="px-4 py-3 text-center text-xs font-medium text-text-secondary uppercase border-r border-border min-w-[120px]"
+                  className="px-2 sm:px-4 py-2 sm:py-3 text-center text-[10px] sm:text-xs font-medium text-text-secondary uppercase border-r border-border w-[90px] sm:w-[120px]"
                 >
-                  <div>{format(day, 'EEE')}</div>
-                  <div className="text-text-primary font-bold">{format(day, 'MMM dd')}</div>
+                  <div className="hidden sm:block">{format(day, 'EEE')}</div>
+                  <div className="sm:hidden">{format(day, 'EEEEE')}</div>
+                  <div className="text-text-primary font-bold text-[11px] sm:text-xs">{format(day, 'MMM dd')}</div>
                 </th>
               ))}
             </tr>
@@ -197,8 +202,9 @@ const TimeBlockingSchedule = ({ logs, onUpdate, activities: customActivities }) 
           <tbody>
             {timeSlots.map((slot) => (
               <tr key={slot.value} className="border-b border-border hover:bg-background/30">
-                <td className="px-3 py-3 text-sm text-text-secondary font-mono border-r border-border sticky left-0 bg-surface z-10">
-                  {slot.display}
+                <td className="px-2 sm:px-3 py-2 sm:py-3 text-[10px] sm:text-sm text-text-secondary font-mono border-r border-border sticky left-0 bg-surface z-10">
+                  <span className="hidden sm:inline">{slot.display}</span>
+                  <span className="sm:hidden text-[9px]">{slot.display.replace(' ', '')}</span>
                 </td>
                 {daysOfWeek.map((day) => {
                   const activity = getActivityForSlot(day, slot)
@@ -207,18 +213,18 @@ const TimeBlockingSchedule = ({ logs, onUpdate, activities: customActivities }) 
                   return (
                     <td
                       key={`${day.toISOString()}-${slot.value}`}
-                      className={`px-2 py-3 text-xs text-center border-r border-border cursor-pointer transition-all hover:ring-2 hover:ring-accent/30 hover:bg-accent/5 ${getCellColor(
+                      className={`px-1 sm:px-2 py-2 sm:py-3 text-[10px] sm:text-xs text-center border-r border-border cursor-pointer transition-all hover:ring-2 hover:ring-accent/30 hover:bg-accent/5 ${getCellColor(
                         activity
                       )}`}
                       onDoubleClick={() => handleDoubleClick(day, slot, activity)}
                       title="Double-click to edit"
                     >
                       {isEditing ? (
-                        <div className="flex flex-col gap-1.5 p-2 bg-background/95 backdrop-blur-sm rounded border border-accent shadow-xl">
+                        <div className="flex flex-col gap-1.5 p-1.5 sm:p-2 bg-background/95 backdrop-blur-sm rounded border border-accent shadow-xl min-w-[150px] sm:min-w-[200px]">
                           <select
                             value={editValue}
                             onChange={(e) => setEditValue(e.target.value)}
-                            className="bg-surface text-text-primary border border-accent/50 rounded px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent shadow-sm appearance-none cursor-pointer hover:bg-background transition-colors"
+                            className="bg-surface text-text-primary border border-accent/50 rounded px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent shadow-sm appearance-none cursor-pointer hover:bg-background transition-colors"
                             style={{
                               backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23B5B8BD' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
                               backgroundPosition: 'right 0.5rem center',
@@ -257,9 +263,9 @@ const TimeBlockingSchedule = ({ logs, onUpdate, activities: customActivities }) 
                         <>
                           {activity ? (
                             activity.is_skipped ? (
-                              <span className="text-red-400">❌</span>
+                              <span className="text-red-400 text-sm sm:text-base">❌</span>
                             ) : (
-                              <span className="text-text-primary font-medium">
+                              <span className="text-text-primary font-medium text-[10px] sm:text-xs leading-tight block truncate px-0.5">
                                 {activity.activity}
                               </span>
                             )
@@ -277,23 +283,23 @@ const TimeBlockingSchedule = ({ logs, onUpdate, activities: customActivities }) 
         </table>
         
         {/* Gap between main table and footer sections */}
-        <div className="my-3"></div>
+        <div className="my-2 sm:my-3"></div>
         
         {/* Sleep Row - Separate table */}
         <div className="bg-gradient-to-r from-indigo-900/20 via-purple-900/20 to-indigo-900/20 border border-indigo-500/30 rounded-lg p-0.5">
-          <table className="w-full border-collapse">
+          <table className="w-full border-collapse min-w-[800px]">
             <tbody>
               <tr>
-                <td className="px-3 py-3 text-sm font-semibold border-r border-indigo-500/30 sticky left-0 bg-gradient-to-r from-indigo-900/30 to-purple-900/30 z-10 min-w-[100px]">
+                <td className="px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm font-semibold border-r border-indigo-500/30 sticky left-0 bg-gradient-to-r from-indigo-900/30 to-purple-900/30 z-10 w-[70px] sm:w-[100px]">
                   <div className="text-indigo-300">Sleep</div>
-                  <div className="text-xs text-indigo-400 font-normal">1:00 AM - 9:00 AM</div>
+                  <div className="text-[9px] sm:text-xs text-indigo-400 font-normal">1-9 AM</div>
                 </td>
                 {daysOfWeek.map((day) => (
                   <td
                     key={`sleep-${day.toISOString()}`}
-                    className="px-2 py-3 text-center border-r border-indigo-500/30 bg-indigo-900/10 min-w-[120px]"
+                    className="px-1 sm:px-2 py-2 sm:py-3 text-center border-r border-indigo-500/30 bg-indigo-900/10 w-[90px] sm:w-[120px]"
                   >
-                    <span className="text-indigo-200 text-xs font-medium">Sleep (8h)</span>
+                    <span className="text-indigo-200 text-[10px] sm:text-xs font-medium">Sleep (8h)</span>
                   </td>
                 ))}
               </tr>
@@ -302,15 +308,16 @@ const TimeBlockingSchedule = ({ logs, onUpdate, activities: customActivities }) 
         </div>
         
         {/* Gap between sleep and daily total */}
-        <div className="my-3"></div>
+        <div className="my-2 sm:my-3"></div>
         
         {/* Daily Total - Separate table */}
         <div className="bg-gradient-to-r from-accent/10 to-accent/5 border border-accent/30 rounded-lg p-0.5">
-          <table className="w-full border-collapse">
+          <table className="w-full border-collapse min-w-[800px]">
             <tfoot>
               <tr>
-                <td className="px-3 py-3 text-sm font-bold text-accent border-r border-accent/30 sticky left-0 bg-accent/15 z-10 min-w-[100px]">
-                  Daily Total
+                <td className="px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm font-bold text-accent border-r border-accent/30 sticky left-0 bg-accent/15 z-10 w-[70px] sm:w-[100px]">
+                  <span className="hidden sm:inline">Daily Total</span>
+                  <span className="sm:hidden text-[10px]">Total</span>
                 </td>
               {daysOfWeek.map((day) => {
                 const dailyTotals = calculateDailyTotals(day)
@@ -319,14 +326,14 @@ const TimeBlockingSchedule = ({ logs, onUpdate, activities: customActivities }) 
                 return (
                   <td
                     key={`total-${day.toISOString()}`}
-                    className="px-2 py-3 border-r border-accent/30 bg-accent/5 min-w-[120px]"
+                    className="px-1 sm:px-2 py-2 sm:py-3 border-r border-accent/30 bg-accent/5 w-[90px] sm:w-[120px]"
                   >
                     <div className="text-center">
-                      <div className="text-sm font-bold text-accent mb-1">
+                      <div className="text-xs sm:text-sm font-bold text-accent mb-0.5 sm:mb-1">
                         {totalHours > 0 ? formatHours(totalHours) : '-'}
                       </div>
                       {totalHours > 0 && (
-                        <div className="text-xs text-text-secondary space-y-0.5">
+                        <div className="text-[9px] sm:text-xs text-text-secondary space-y-0.5 leading-tight">
                           {(() => {
                             const sorted = Object.entries(dailyTotals).sort((a, b) => b[1] - a[1])
                             const top4 = sorted.slice(0, 4)
@@ -337,7 +344,8 @@ const TimeBlockingSchedule = ({ logs, onUpdate, activities: customActivities }) 
                               <>
                                 {top4.map(([activity, hours]) => (
                                   <div key={activity} className="truncate" title={`${activity}: ${formatHours(hours)}`}>
-                                    {activity}: {formatHours(hours)}
+                                    <span className="hidden sm:inline">{activity}: {formatHours(hours)}</span>
+                                    <span className="sm:hidden">{activity.substring(0, 6)}: {formatHours(hours)}</span>
                                   </div>
                                 ))}
                                 {otherTotal > 0 && (

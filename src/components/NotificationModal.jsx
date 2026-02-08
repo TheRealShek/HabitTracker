@@ -69,28 +69,28 @@ const NotificationModal = ({ timestamp, onClose }) => {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
-      <div className="bg-surface p-8 rounded-lg shadow-2xl w-full max-w-md border border-border">
-        <div className="flex justify-between items-start mb-6">
-          <h2 className="text-2xl font-bold text-text-primary">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-3 sm:px-4">
+      <div className="bg-surface p-4 sm:p-8 rounded-lg shadow-2xl w-full max-w-md border border-border">
+        <div className="flex justify-between items-start mb-4 sm:mb-6">
+          <h2 className="text-lg sm:text-2xl font-bold text-text-primary">
             What did you do?
           </h2>
-          <div className={`text-lg font-mono ${timeLeft <= 30 ? 'text-red-400' : 'text-accent'}`}>
+          <div className={`text-base sm:text-lg font-mono ${timeLeft <= 30 ? 'text-red-400' : 'text-accent'}`}>
             {formatTime(timeLeft)}
           </div>
         </div>
 
-        <p className="text-text-secondary mb-6">
+        <p className="text-text-secondary mb-4 sm:mb-6 text-sm sm:text-base">
           Log your activity for the last 30 minutes
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           <div>
-            <label className="text-sm text-text-secondary mb-2 block font-medium">Select or type activity</label>
+            <label className="text-xs sm:text-sm text-text-secondary mb-2 block font-medium">Select or type activity</label>
             <select
               value={activity}
               onChange={(e) => setActivity(e.target.value)}
-              className="w-full px-4 py-3 bg-background border border-border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent mb-3 appearance-none cursor-pointer hover:bg-surface transition-colors shadow-sm"
+              className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base bg-background border border-border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent mb-3 appearance-none cursor-pointer hover:bg-surface transition-colors shadow-sm"
               style={{
                 backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23B5B8BD' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
                 backgroundPosition: 'right 1rem center',

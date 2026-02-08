@@ -38,6 +38,84 @@ function App() {
   useEffect(() => {
     if (!session) return
 
+    // Function to play notification sound
+    const playNotificationSound = () => {
+      try {
+        // Create audio context
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)()
+        
+        // Create oscillator for a pleasant notification sound
+        const oscillator = audioContext.createOscillator()
+        const gainNode = audioContext.createGain()
+        
+        oscillator.connect(gainNode)
+        gainNode.connect(audioContext.destination)
+        
+        // Configure sound - pleasant notification tone
+        oscillator.frequency.setValueAtTime(800, audioContext.currentTime) // First tone
+        oscillator.frequency.setValueAtTime(1000, audioContext.currentTime + 0.1) // Second tone (higher)
+        
+        // Fade in and out
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime)
+        gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.05)
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5)
+        
+        oscillator.start(audioContext.currentTime)
+        oscillator.stop(audioContext.currentTime + 0.5)
+      } catch (error) {
+        console.log('Could not play notification sound:', error)
+      }
+    }
+
+    // Function to make window/tab blink to grab attention
+    const blinkWindow = () => {
+      const originalTitle = document.title
+      let blinkCount = 0
+      const maxBlinks = 10 // Blink 10 times
+      
+      const blinkInterval = setInterval(() => {
+        if (blinkCount >= maxBlinks) {
+          document.title = originalTitle
+          clearInterval(blinkInterval)
+          return
+        }
+        
+        // Alternate between notification message and original title
+        document.title = blinkCount % 2 === 0 
+          ? 'LOG YOUR ACTIVITY!' 
+          : originalTitle
+        blinkCount++
+      }, 1000) // Change every second
+
+      // Also try to flash favicon if possible
+      try {
+        const link = document.querySelector("link[rel*='icon']") || document.createElement('link')
+        link.type = 'image/x-icon'
+        link.rel = 'shortcut icon'
+        const originalIcon = link.href
+        
+        let iconBlinkCount = 0
+        const iconBlinkInterval = setInterval(() => {
+          if (iconBlinkCount >= maxBlinks) {
+            link.href = originalIcon
+            clearInterval(iconBlinkInterval)
+            return
+          }
+          // You can add different colored favicons here if you have them
+          iconBlinkCount++
+        }, 1000)
+      } catch (error) {
+        console.log('Could not blink favicon:', error)
+      }
+
+      // Stop blinking when user focuses on window
+      const stopBlinking = () => {
+        document.title = originalTitle
+        window.removeEventListener('focus', stopBlinking)
+      }
+      window.addEventListener('focus', stopBlinking)
+    }
+
     const checkAndTriggerNotification = () => {
       // Only trigger when tab is visible
       if (document.visibilityState !== 'visible') return
@@ -73,11 +151,19 @@ function App() {
       localStorage.setItem('lastNotifiedSlot', timeSlotKey)
       localStorage.setItem('lastNotificationTime', Date.now().toString())
 
+      // Play notification sound
+      playNotificationSound()
+
+      // Blink window title to grab attention
+      blinkWindow()
+
       // Show browser notification
       if ('Notification' in window && Notification.permission === 'granted') {
         new Notification('Time to log your activity!', {
           body: 'What did you do in the last 30 minutes?',
-          icon: '/vite.svg'
+          icon: '/vite.svg',
+          tag: 'habit-tracker-notification',
+          requireInteraction: false
         })
       }
     }
