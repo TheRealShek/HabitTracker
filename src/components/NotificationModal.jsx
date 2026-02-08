@@ -1,10 +1,31 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
+import { useInsertTimeLog } from '../hooks/useTimeLogs'
 
 const NotificationModal = ({ timestamp, onClose }) => {
   const [activity, setActivity] = useState('')
-  const [loading, setLoading] = useState(false)
   const [timeLeft, setTimeLeft] = useState(120) // 2 minutes in seconds
+  const [activities, setActivities] = useState([])
+  
+  const insertMutation = useInsertTimeLog()
+
+  useEffect(() => {
+    // Load custom activities from localStorage
+    const saved = localStorage.getItem('customActivities')
+    if (saved) {
+      setActivities(JSON.parse(saved))
+    } else {
+      setActivities([
+        'Office Work',
+        'Personal',
+        'Workout',
+        'Meditation',
+        'Break',
+        'Lunch',
+        'College time'
+      ])
+    }
+  }, [])
 
   useEffect(() => {
     // Countdown timer
@@ -23,34 +44,28 @@ const NotificationModal = ({ timestamp, onClose }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setLoading(true)
 
     const { data: { user } } = await supabase.auth.getUser()
 
-    await supabase.from('time_logs').insert([
-      {
-        user_id: user.id,
-        timestamp: timestamp.toISOString(),
-        activity: activity.trim(),
-        is_skipped: false,
-      },
-    ])
+    await insertMutation.mutateAsync({
+      user_id: user.id,
+      timestamp: timestamp.toISOString(),
+      activity: activity.trim(),
+      is_skipped: false,
+    })
 
-    setLoading(false)
     onClose()
   }
 
   const handleSkip = async () => {
     const { data: { user } } = await supabase.auth.getUser()
 
-    await supabase.from('time_logs').insert([
-      {
-        user_id: user.id,
-        timestamp: timestamp.toISOString(),
-        activity: null,
-        is_skipped: true,
-      },
-    ])
+    await insertMutation.mutateAsync({
+      user_id: user.id,
+      timestamp: timestamp.toISOString(),
+      activity: null,
+      is_skipped: true,
+    })
 
     onClose()
   }
@@ -79,28 +94,42 @@ const NotificationModal = ({ timestamp, onClose }) => {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
+            <label className="text-sm text-text-secondary mb-2 block">Select or type activity</label>
+            <select
+              value={activity}
+              onChange={(e) => setActivity(e.target.value)}
+              className="w-full px-4 py-3 bg-background border border-border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent mb-3"
+              autoFocus
+            >
+              <option value="">-- Select Activity --</option>
+              {activities.map((act) => (
+                <option key={act} value={act}>
+                  {act}
+                </option>
+              ))}
+            </select>
+            
             <textarea
               value={activity}
               onChange={(e) => setActivity(e.target.value)}
-              placeholder="Enter your activity..."
+              placeholder="Or type a custom activity..."
               className="w-full px-4 py-3 bg-background border border-border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent resize-none"
-              rows="4"
-              autoFocus
+              rows="3"
             />
           </div>
 
           <div className="flex gap-3">
             <button
               type="submit"
-              disabled={loading || !activity.trim()}
+              disabled={insertMutation.isPending || !activity.trim()}
               className="flex-1 bg-accent hover:bg-accent/90 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Saving...' : 'Submit'}
+              {insertMutation.isPending ? 'Saving...' : 'Submit'}
             </button>
             <button
               type="button"
               onClick={handleSkip}
-              disabled={loading}
+              disabled={insertMutation.isPending}
               className="px-6 bg-background hover:bg-border text-text-secondary font-medium py-2 rounded-lg transition-colors border border-border disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Skip

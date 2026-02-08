@@ -1,16 +1,17 @@
 import React, { useState } from 'react'
 import { supabase } from '../supabaseClient'
 import { format } from 'date-fns'
+import { useBulkInsertTimeLogs } from '../hooks/useTimeLogs'
 
 const BulkSetModal = ({ onClose, onSuccess }) => {
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'))
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  
+  const bulkInsertMutation = useBulkInsertTimeLogs()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    setLoading(true)
 
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -43,18 +44,12 @@ const BulkSetModal = ({ onClose, onSuccess }) => {
         is_skipped: false,
       })
 
-      const { error: insertError } = await supabase.from('time_logs').insert(entries)
-
-      if (insertError) {
-        throw insertError
-      }
+      await bulkInsertMutation.mutateAsync(entries)
 
       onSuccess()
       onClose()
     } catch (err) {
       setError(err.message || 'Failed to create entries')
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -102,15 +97,15 @@ const BulkSetModal = ({ onClose, onSuccess }) => {
           <div className="flex gap-3">
             <button
               type="submit"
-              disabled={loading}
+              disabled={bulkInsertMutation.isPending}
               className="flex-1 bg-accent hover:bg-accent/90 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Creating...' : 'Confirm'}
+              {bulkInsertMutation.isPending ? 'Creating...' : 'Confirm'}
             </button>
             <button
               type="button"
               onClick={onClose}
-              disabled={loading}
+              disabled={bulkInsertMutation.isPending}
               className="px-6 bg-background hover:bg-border text-text-secondary font-medium py-2 rounded-lg transition-colors border border-border disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel

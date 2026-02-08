@@ -1,43 +1,102 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
-import { format, startOfWeek, endOfWeek } from 'date-fns'
+import { format } from 'date-fns'
+import { useTimeLogs } from '../hooks/useTimeLogs'
+import { useQueryClient } from '@tanstack/react-query'
+import { timeLogKeys } from '../hooks/useTimeLogs'
 import BulkSetModal from './BulkSetModal'
 import TimeBlockingSchedule from './TimeBlockingSchedule'
+import ActivitySettingsModal from './ActivitySettingsModal'
+import ActivitySummaryTable from './ActivitySummaryTable'
 
 const Dashboard = ({ onLogout }) => {
-  const [logs, setLogs] = useState([])
-  const [loading, setLoading] = useState(true)
   const [showBulkModal, setShowBulkModal] = useState(false)
+  const [showSettingsModal, setShowSettingsModal] = useState(false)
   const [filterWeek, setFilterWeek] = useState(true)
+  const [activities, setActivities] = useState([])
+  const [timeRemaining, setTimeRemaining] = useState('')
+  
+  // Use React Query for data fetching with caching
+  const { data: logs = [], isLoading: loading, refetch } = useTimeLogs(filterWeek)
+  const queryClient = useQueryClient()
 
-  const fetchLogs = async () => {
-    setLoading(true)
-    const { data: { user } } = await supabase.auth.getUser()
+  // Calculate time remaining until next prompt
+  useEffect(() => {
+    const updateTimer = () => {
+      const now = new Date()
+      // Get current IST time
+      const istHour = parseInt(now.toLocaleString('en-US', { hour: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' }))
+      const istMinute = parseInt(now.toLocaleString('en-US', { minute: '2-digit', timeZone: 'Asia/Kolkata' }))
+      const istSecond = parseInt(now.toLocaleString('en-US', { second: '2-digit', timeZone: 'Asia/Kolkata' }))
+      
+      // Check if in sleep hours (1 AM - 9 AM IST)
+      if (istHour >= 1 && istHour < 9) {
+        setTimeRemaining('Sleep Time')
+        return
+      }
 
-    let query = supabase
-      .from('time_logs')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('timestamp', { ascending: false })
+      // Calculate next 30-minute slot
+      let nextMinute
+      if (istMinute < 30) {
+        nextMinute = 30
+      } else {
+        nextMinute = 0 // Next hour
+      }
 
-    if (filterWeek) {
-      const start = startOfWeek(new Date(), { weekStartsOn: 1 })
-      const end = endOfWeek(new Date(), { weekStartsOn: 1 })
-      query = query.gte('timestamp', start.toISOString()).lte('timestamp', end.toISOString())
+      // Calculate seconds until next slot
+      let minutesLeft, secondsLeft
+      if (nextMinute === 30) {
+        minutesLeft = 30 - istMinute - 1
+        secondsLeft = 60 - istSecond
+      } else {
+        minutesLeft = 60 - istMinute - 1
+        secondsLeft = 60 - istSecond
+      }
+
+      if (secondsLeft === 60) {
+        secondsLeft = 0
+        minutesLeft += 1
+      }
+
+      // If we're exactly at 00 or 30 minutes
+      if ((istMinute === 0 || istMinute === 30) && istSecond === 0) {
+        setTimeRemaining('Ready')
+      } else if (minutesLeft === 0 && secondsLeft <= 5) {
+        setTimeRemaining('Ready')
+      } else {
+        setTimeRemaining(`${minutesLeft}:${secondsLeft.toString().padStart(2, '0')}`)
+      }
     }
 
-    const { data, error } = await query
+    // Initial calculation
+    updateTimer()
+    
+    // Update every second
+    const interval = setInterval(updateTimer, 1000)
 
-    if (!error && data) {
-      setLogs(data)
-    }
-    setLoading(false)
-  }
+    return () => clearInterval(interval)
+  }, [])
 
   useEffect(() => {
-    fetchLogs()
+    // Load custom activities from localStorage
+    const saved = localStorage.getItem('customActivities')
+    if (saved) {
+      setActivities(JSON.parse(saved))
+    } else {
+      setActivities([
+        'Office Work',
+        'Personal',
+        'Workout',
+        'Meditation',
+        'Break',
+        'Lunch',
+        'College time'
+      ])
+    }
+  }, [])
 
-    // Subscribe to realtime changes
+  useEffect(() => {
+    // Subscribe to realtime changes and invalidate React Query cache
     const channel = supabase
       .channel('time_logs_changes')
       .on(
@@ -48,7 +107,8 @@ const Dashboard = ({ onLogout }) => {
           table: 'time_logs',
         },
         () => {
-          fetchLogs()
+          // Invalidate cache to trigger refetch
+          queryClient.invalidateQueries({ queryKey: timeLogKeys.all })
         }
       )
       .subscribe()
@@ -56,7 +116,7 @@ const Dashboard = ({ onLogout }) => {
     return () => {
       channel.unsubscribe()
     }
-  }, [filterWeek])
+  }, [])
 
   return (
     <div className="min-h-screen">
@@ -86,6 +146,13 @@ const Dashboard = ({ onLogout }) => {
                 <span className="text-xs text-text-secondary">Skipped:</span>
                 <span className="text-sm font-bold text-red-400">{logs.filter((l) => l.is_skipped).length}</span>
               </div>
+              <div className="h-6 w-px bg-border"></div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-text-secondary">Next Prompt:</span>
+                <span className={`text-sm font-bold font-mono ${timeRemaining === 'Ready' ? 'text-green-400' : 'text-accent'}`}>
+                  {timeRemaining}
+                </span>
+              </div>
             </div>
             
             {/* Right - Logout */}
@@ -105,7 +172,7 @@ const Dashboard = ({ onLogout }) => {
         <div className="mb-4 flex flex-wrap gap-3 items-center justify-between">
           <div className="flex gap-2 items-center">
             <button
-              onClick={fetchLogs}
+              onClick={() => refetch()}
               className="p-1.5 bg-surface hover:bg-background text-text-secondary rounded-lg transition-colors border border-border"
               title="Refresh"
             >
@@ -118,6 +185,15 @@ const Dashboard = ({ onLogout }) => {
               className="px-3 py-1.5 text-sm bg-surface hover:bg-accent/10 text-text-secondary hover:text-accent rounded-lg transition-all border border-border hover:border-accent/50 font-medium"
             >
               + Bulk Set
+            </button>
+            <button
+              onClick={() => setShowSettingsModal(true)}
+              className="p-1.5 bg-surface hover:bg-background text-text-secondary rounded-lg transition-colors border border-border"
+              title="Activity Settings"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+              </svg>
             </button>
           </div>
           
@@ -143,9 +219,16 @@ const Dashboard = ({ onLogout }) => {
             No activities logged yet. You'll be prompted every 30 minutes.
           </div>
         ) : (
-          <TimeBlockingSchedule logs={logs} />
+          <TimeBlockingSchedule logs={logs} onUpdate={() => refetch()} activities={activities} />
         )}
       </main>
+
+      {showSettingsModal && (
+        <ActivitySettingsModal
+          onClose={() => setShowSettingsModal(false)}
+          onSave={(updated) => setActivities(updated)}
+        />
+      )}
 
       {showBulkModal && (
         <BulkSetModal onClose={() => setShowBulkModal(false)} onSuccess={fetchLogs} />
