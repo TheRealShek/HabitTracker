@@ -43,26 +43,31 @@ function App() {
         audioContext.resume()
       }
       
-      // Create oscillator for a pleasant notification sound
-      const oscillator = audioContext.createOscillator()
-      const gainNode = audioContext.createGain()
+      // Play sound 3 times with slight delays
+      for (let i = 0; i < 3; i++) {
+        const delay = i * 0.6 // 0s, 0.6s, 1.2s
+        
+        // Create oscillator for each beep
+        const oscillator = audioContext.createOscillator()
+        const gainNode = audioContext.createGain()
+        
+        oscillator.connect(gainNode)
+        gainNode.connect(audioContext.destination)
+        
+        // Configure sound - pleasant notification tone
+        oscillator.frequency.setValueAtTime(800, audioContext.currentTime + delay) // First tone
+        oscillator.frequency.setValueAtTime(1000, audioContext.currentTime + delay + 0.1) // Second tone (higher)
+        
+        // Fade in and out
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime + delay)
+        gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + delay + 0.05)
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + delay + 0.5)
+        
+        oscillator.start(audioContext.currentTime + delay)
+        oscillator.stop(audioContext.currentTime + delay + 0.5)
+      }
       
-      oscillator.connect(gainNode)
-      gainNode.connect(audioContext.destination)
-      
-      // Configure sound - pleasant notification tone
-      oscillator.frequency.setValueAtTime(800, audioContext.currentTime) // First tone
-      oscillator.frequency.setValueAtTime(1000, audioContext.currentTime + 0.1) // Second tone (higher)
-      
-      // Fade in and out
-      gainNode.gain.setValueAtTime(0, audioContext.currentTime)
-      gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.05)
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5)
-      
-      oscillator.start(audioContext.currentTime)
-      oscillator.stop(audioContext.currentTime + 0.5)
-      
-      console.log('Notification sound played')
+      console.log('Notification sound played (3x)')
     } catch (error) {
       console.error('Could not play notification sound:', error)
     }

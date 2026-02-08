@@ -88,15 +88,20 @@ const TimeBlockingSchedule = ({ logs, onUpdate, activities: customActivities }) 
   // Memoize time slots generation
   const timeSlots = useMemo(() => {
     const slots = []
-    // 9 AM to 11:30 PM only
-    for (let hour = 9; hour < 24; hour++) {
+    // 9 AM to 12:00 AM (midnight) - includes 11:30 PM
+    for (let hour = 9; hour <= 24; hour++) {
       for (let minute of [0, 30]) {
-        const isPM = hour >= 12
-        const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour
+        // Skip 24:30 (doesn't exist)
+        if (hour === 24 && minute === 30) continue
+        
+        const displayHour24 = hour === 24 ? 0 : hour // 24:00 = 0:00 (midnight)
+        const isPM = hour >= 12 && hour < 24
+        const displayHour12 = hour > 12 ? hour - 12 : hour === 0 || hour === 24 ? 12 : hour
         const ampm = isPM ? 'PM' : 'AM'
+        
         slots.push({
-          value: `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`,
-          display: `${displayHour}:${minute.toString().padStart(2, '0')} ${ampm}`
+          value: `${displayHour24.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`,
+          display: `${displayHour12}:${minute.toString().padStart(2, '0')} ${ampm}`
         })
       }
     }
