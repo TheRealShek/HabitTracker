@@ -214,16 +214,26 @@ const TimeBlockingSchedule = ({ logs, onUpdate, activities: customActivities }) 
                       title="Double-click to edit"
                     >
                       {isEditing ? (
-                        <div className="flex flex-col gap-1.5 p-2 bg-background/80 backdrop-blur-sm rounded border border-accent shadow-lg">
+                        <div className="flex flex-col gap-1.5 p-2 bg-background/95 backdrop-blur-sm rounded border border-accent shadow-xl">
                           <select
                             value={editValue}
                             onChange={(e) => setEditValue(e.target.value)}
-                            className="bg-surface text-text-primary border border-accent/50 rounded px-2 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-accent"
+                            className="bg-surface text-text-primary border border-accent/50 rounded px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent shadow-sm appearance-none cursor-pointer hover:bg-background transition-colors"
+                            style={{
+                              backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23B5B8BD' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                              backgroundPosition: 'right 0.5rem center',
+                              backgroundRepeat: 'no-repeat',
+                              backgroundSize: '1.5em 1.5em',
+                              paddingRight: '2.5rem'
+                            }}
                             autoFocus
                           >
-                            <option value="">-- Empty --</option>
+                            <option value="" className="bg-surface text-text-secondary">-- Empty --</option>
+                            {activities.length === 0 && (
+                              <option value="" disabled className="bg-surface text-text-secondary italic">No activities yet - Add in settings</option>
+                            )}
                             {activities.map((act) => (
-                              <option key={act} value={act}>
+                              <option key={act} value={act} className="bg-surface text-text-primary py-2">
                                 {act}
                               </option>
                             ))}
@@ -231,13 +241,13 @@ const TimeBlockingSchedule = ({ logs, onUpdate, activities: customActivities }) 
                           <div className="flex gap-1 justify-center">
                             <button
                               onClick={() => handleSave(day, slot)}
-                              className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-xs font-medium transition-colors"
+                              className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-xs font-medium transition-colors shadow-sm"
                             >
                               Save
                             </button>
                             <button
                               onClick={handleCancel}
-                              className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors"
+                              className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors shadow-sm"
                             >
                               Cancel
                             </button>
@@ -264,27 +274,44 @@ const TimeBlockingSchedule = ({ logs, onUpdate, activities: customActivities }) 
               </tr>
             ))}
           </tbody>
-          <tbody className="border-t-2 border-border">
-            <tr className="bg-surface/50">
-              <td className="px-3 py-4 text-sm text-text-secondary font-mono border-r border-border sticky left-0 bg-surface/50 z-10">
-                <div className="font-semibold">Sleep</div>
-                <div className="text-xs">1:00 AM - 9:00 AM</div>
-              </td>
-              {daysOfWeek.map((day) => (
-                <td
-                  key={`sleep-${day.toISOString()}`}
-                  className="px-2 py-4 text-center border-r border-border bg-gray-700/30"
-                >
-                  <span className="text-text-primary font-medium">Sleep (8h)</span>
+        </table>
+        
+        {/* Gap between main table and footer sections */}
+        <div className="my-3"></div>
+        
+        {/* Sleep Row - Separate table */}
+        <div className="bg-gradient-to-r from-indigo-900/20 via-purple-900/20 to-indigo-900/20 border border-indigo-500/30 rounded-lg p-0.5">
+          <table className="w-full border-collapse">
+            <tbody>
+              <tr>
+                <td className="px-3 py-3 text-sm font-semibold border-r border-indigo-500/30 sticky left-0 bg-gradient-to-r from-indigo-900/30 to-purple-900/30 z-10 min-w-[100px]">
+                  <div className="text-indigo-300">Sleep</div>
+                  <div className="text-xs text-indigo-400 font-normal">1:00 AM - 9:00 AM</div>
                 </td>
-              ))}
-            </tr>
-          </tbody>
-          <tfoot className="bg-background border-t-2 border-border">
-            <tr>
-              <td className="px-3 py-3 text-sm font-semibold text-text-primary border-r border-border sticky left-0 bg-background z-10">
-                Daily Total
-              </td>
+                {daysOfWeek.map((day) => (
+                  <td
+                    key={`sleep-${day.toISOString()}`}
+                    className="px-2 py-3 text-center border-r border-indigo-500/30 bg-indigo-900/10 min-w-[120px]"
+                  >
+                    <span className="text-indigo-200 text-xs font-medium">Sleep (8h)</span>
+                  </td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        {/* Gap between sleep and daily total */}
+        <div className="my-3"></div>
+        
+        {/* Daily Total - Separate table */}
+        <div className="bg-gradient-to-r from-accent/10 to-accent/5 border border-accent/30 rounded-lg p-0.5">
+          <table className="w-full border-collapse">
+            <tfoot>
+              <tr>
+                <td className="px-3 py-3 text-sm font-bold text-accent border-r border-accent/30 sticky left-0 bg-accent/15 z-10 min-w-[100px]">
+                  Daily Total
+                </td>
               {daysOfWeek.map((day) => {
                 const dailyTotals = calculateDailyTotals(day)
                 const totalHours = Object.values(dailyTotals).reduce((sum, h) => sum + h, 0)
@@ -292,10 +319,10 @@ const TimeBlockingSchedule = ({ logs, onUpdate, activities: customActivities }) 
                 return (
                   <td
                     key={`total-${day.toISOString()}`}
-                    className="px-2 py-3 border-r border-border"
+                    className="px-2 py-3 border-r border-accent/30 bg-accent/5 min-w-[120px]"
                   >
                     <div className="text-center">
-                      <div className="text-sm font-bold text-text-primary mb-1">
+                      <div className="text-sm font-bold text-accent mb-1">
                         {totalHours > 0 ? formatHours(totalHours) : '-'}
                       </div>
                       {totalHours > 0 && (
@@ -327,9 +354,10 @@ const TimeBlockingSchedule = ({ logs, onUpdate, activities: customActivities }) 
                   </td>
                 )
               })}
-            </tr>
-          </tfoot>
-        </table>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
       </div>
     </div>
   )

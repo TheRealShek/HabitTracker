@@ -15,15 +15,7 @@ const NotificationModal = ({ timestamp, onClose }) => {
     if (saved) {
       setActivities(JSON.parse(saved))
     } else {
-      setActivities([
-        'Office Work',
-        'Personal',
-        'Workout',
-        'Meditation',
-        'Break',
-        'Lunch',
-        'College time'
-      ])
+      setActivities([])
     }
   }, [])
 
@@ -94,16 +86,26 @@ const NotificationModal = ({ timestamp, onClose }) => {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="text-sm text-text-secondary mb-2 block">Select or type activity</label>
+            <label className="text-sm text-text-secondary mb-2 block font-medium">Select or type activity</label>
             <select
               value={activity}
               onChange={(e) => setActivity(e.target.value)}
-              className="w-full px-4 py-3 bg-background border border-border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent mb-3"
+              className="w-full px-4 py-3 bg-background border border-border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent mb-3 appearance-none cursor-pointer hover:bg-surface transition-colors shadow-sm"
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23B5B8BD' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                backgroundPosition: 'right 1rem center',
+                backgroundRepeat: 'no-repeat',
+                backgroundSize: '1.5em 1.5em',
+                paddingRight: '3rem'
+              }}
               autoFocus
             >
-              <option value="">-- Select Activity --</option>
+              <option value="" className="bg-background text-text-secondary">-- Select Activity --</option>
+              {activities.length === 0 && (
+                <option value="" disabled className="bg-background text-text-secondary italic">No activities - Add via Edit Activities</option>
+              )}
               {activities.map((act) => (
-                <option key={act} value={act}>
+                <option key={act} value={act} className="bg-background text-text-primary py-2">
                   {act}
                 </option>
               ))}
@@ -113,7 +115,7 @@ const NotificationModal = ({ timestamp, onClose }) => {
               value={activity}
               onChange={(e) => setActivity(e.target.value)}
               placeholder="Or type a custom activity..."
-              className="w-full px-4 py-3 bg-background border border-border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent resize-none"
+              className="w-full px-4 py-3 bg-background border border-border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent resize-none hover:bg-surface transition-colors shadow-sm"
               rows="3"
             />
           </div>
@@ -122,7 +124,7 @@ const NotificationModal = ({ timestamp, onClose }) => {
             <button
               type="submit"
               disabled={insertMutation.isPending || !activity.trim()}
-              className="flex-1 bg-accent hover:bg-accent/90 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 bg-accent hover:bg-accent/90 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
             >
               {insertMutation.isPending ? 'Saving...' : 'Submit'}
             </button>
