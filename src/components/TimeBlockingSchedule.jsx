@@ -45,13 +45,10 @@ const TimeBlockingSchedule = ({ logs, onUpdate, activities: customActivities, we
   const handleSave = async (day, slot) => {
     const [hours, minutes] = slot.value.split(':').map(Number)
     
-    // For 12:00 AM and 12:30 AM slots, use the NEXT day
-    const targetDay = slot.isNextDay ? addDays(day, 1) : day
-    
     // Find existing activity using cached processed logs
     const activity = processedLogs.find((log) => {
       return (
-        isSameDay(log.date, targetDay) &&
+        isSameDay(log.date, day) &&
         log.istHour === hours &&
         log.istMinute === minutes
       )
@@ -68,7 +65,7 @@ const TimeBlockingSchedule = ({ logs, onUpdate, activities: customActivities, we
       // Insert new using React Query mutation
       const { data: { user } } = await supabase.auth.getUser()
       
-      const localDate = new Date(targetDay)
+      const localDate = new Date(day)
       localDate.setHours(hours, minutes, 0, 0)
       
       await insertMutation.mutateAsync({
@@ -92,7 +89,19 @@ const TimeBlockingSchedule = ({ logs, onUpdate, activities: customActivities, we
   const timeSlots = useMemo(() => {
     const slots = []
     
-    // 9 AM to 11:30 PM
+    // Start with 12:00 AM and 12:30 AM (from same day)
+    slots.push({
+      value: '00:00',
+      display: '12:00 AM - 12:30 AM',
+      isNextDay: false
+    })
+    slots.push({
+      value: '00:30',
+      display: '12:30 AM - 1:00 AM',
+      isNextDay: false
+    })
+    
+    // Then 9 AM to 11:30 PM
     for (let hour = 9; hour < 24; hour++) {
       for (let minute of [0, 30]) {
         const isPM = hour >= 12
@@ -112,18 +121,6 @@ const TimeBlockingSchedule = ({ logs, onUpdate, activities: customActivities, we
         })
       }
     }
-    
-    // End with 12:00 AM and 12:30 AM (from next day)
-    slots.push({
-      value: '00:00',
-      display: '12:00 AM - 12:30 AM',
-      isNextDay: true
-    })
-    slots.push({
-      value: '00:30',
-      display: '12:30 AM - 1:00 AM',
-      isNextDay: true
-    })
     
     return slots
   }, [])
@@ -176,12 +173,9 @@ const TimeBlockingSchedule = ({ logs, onUpdate, activities: customActivities, we
   const getActivityForSlot = (day, slot) => {
     const [hours, minutes] = slot.value.split(':').map(Number)
     
-    // For 12:00 AM and 12:30 AM slots, check the NEXT day's data
-    const targetDay = slot.isNextDay ? addDays(day, 1) : day
-    
     return processedLogs.find((log) => {
       return (
-        isSameDay(log.date, targetDay) &&
+        isSameDay(log.date, day) &&
         log.istHour === hours &&
         log.istMinute === minutes
       )
