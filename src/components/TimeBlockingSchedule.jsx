@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../supabaseClient'
-import { format, startOfWeek, addDays, isSameDay } from 'date-fns'
+import { format, startOfWeek, addDays, addWeeks, isSameDay } from 'date-fns'
 import { useUpdateTimeLog, useInsertTimeLog } from '../hooks/useTimeLogs'
 
-const TimeBlockingSchedule = ({ logs, onUpdate, activities: customActivities }) => {
+const TimeBlockingSchedule = ({ logs, onUpdate, activities: customActivities, weekOffset = 0 }) => {
   const [editingCell, setEditingCell] = useState(null)
   const [editValue, setEditValue] = useState('')
   
@@ -110,9 +110,9 @@ const TimeBlockingSchedule = ({ logs, onUpdate, activities: customActivities }) 
   
   // Memoize days of week
   const daysOfWeek = useMemo(() => {
-    const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 })
+    const weekStart = addWeeks(startOfWeek(new Date(), { weekStartsOn: 1 }), weekOffset)
     return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
-  }, [])
+  }, [weekOffset])
 
   // Calculate daily totals for each activity (excluding Sleep)
   const calculateDailyTotals = (day) => {

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../supabaseClient'
-import { startOfWeek, endOfWeek } from 'date-fns'
+import { startOfWeek, endOfWeek, addWeeks } from 'date-fns'
 
 // Query key factory
 export const timeLogKeys = {
@@ -10,9 +10,11 @@ export const timeLogKeys = {
 }
 
 // Fetch time logs
-export const useTimeLogs = (filterWeek = true) => {
+export const useTimeLogs = (filterWeek = true, weekOffset = 0) => {
   return useQuery({
-    queryKey: filterWeek ? timeLogKeys.week(startOfWeek(new Date(), { weekStartsOn: 1 }).toISOString()) : timeLogKeys.allTime(),
+    queryKey: filterWeek 
+      ? timeLogKeys.week(addWeeks(startOfWeek(new Date(), { weekStartsOn: 1 }), weekOffset).toISOString()) 
+      : timeLogKeys.week(addWeeks(startOfWeek(new Date(), { weekStartsOn: 1 }), weekOffset).toISOString()),
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser()
       
@@ -22,11 +24,11 @@ export const useTimeLogs = (filterWeek = true) => {
         .eq('user_id', user.id)
         .order('timestamp', { ascending: false })
 
-      if (filterWeek) {
-        const start = startOfWeek(new Date(), { weekStartsOn: 1 })
-        const end = endOfWeek(new Date(), { weekStartsOn: 1 })
-        query = query.gte('timestamp', start.toISOString()).lte('timestamp', end.toISOString())
-      }
+      // Always filter by the week (current week + offset)
+      const targetWeekStart = addWeeks(startOfWeek(new Date(), { weekStartsOn: 1 }), weekOffset)
+      const start = startOfWeek(targetWeekStart, { weekStartsOn: 1 })
+      const end = endOfWeek(targetWeekStart, { weekStartsOn: 1 })
+      query = query.gte('timestamp', start.toISOString()).lte('timestamp', end.toISOString())
 
       const { data, error } = await query
 

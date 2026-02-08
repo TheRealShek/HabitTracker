@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
-import { format } from 'date-fns'
+import { format, addWeeks, startOfWeek, endOfWeek } from 'date-fns'
 import { useTimeLogs, useBulkInsertTimeLogs } from '../hooks/useTimeLogs'
 import { useQueryClient } from '@tanstack/react-query'
 import { timeLogKeys } from '../hooks/useTimeLogs'
@@ -17,11 +17,12 @@ const Dashboard = ({ onLogout, onTestNotification }) => {
   const [showAppSettingsModal, setShowAppSettingsModal] = useState(false)
   const [showStats, setShowStats] = useState(false)
   const [filterWeek, setFilterWeek] = useState(true)
+  const [weekOffset, setWeekOffset] = useState(0) // 0 = current week, -1 = last week, etc.
   const [activities, setActivities] = useState([])
   const [timeRemaining, setTimeRemaining] = useState('')
   
   // Use React Query for data fetching with caching
-  const { data: logs = [], isLoading: loading, refetch } = useTimeLogs(filterWeek)
+  const { data: logs = [], isLoading: loading, refetch } = useTimeLogs(filterWeek, weekOffset)
   const queryClient = useQueryClient()
   const bulkInsert = useBulkInsertTimeLogs()
 
@@ -331,16 +332,58 @@ const Dashboard = ({ onLogout, onTestNotification }) => {
             </button>
           </div>
           
-          <button
-            onClick={() => setFilterWeek(!filterWeek)}
-            className={`px-3 py-1.5 text-xs sm:text-sm rounded-lg font-medium transition-colors whitespace-nowrap ${
-              filterWeek
-                ? 'bg-accent text-white'
-                : 'bg-surface text-text-secondary border border-border hover:bg-background'
-            }`}
-          >
-            {filterWeek ? 'This Week' : 'All Time'}
-          </button>
+          <div className="flex items-center gap-2">
+            {!filterWeek && (
+              <>
+                <button
+                  onClick={() => setWeekOffset(weekOffset - 1)}
+                  className="p-1.5 bg-surface hover:bg-background text-text-secondary rounded-lg transition-colors border border-border"
+                  title="Previous Week"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                
+                <div className="px-3 py-1.5 bg-surface border border-border rounded-lg text-xs sm:text-sm text-text-primary font-medium whitespace-nowrap">
+                  {weekOffset === 0 ? (
+                    'This Week'
+                  ) : (
+                    <>
+                      {format(addWeeks(startOfWeek(new Date(), { weekStartsOn: 1 }), weekOffset), 'MMM d')} - {format(addWeeks(endOfWeek(new Date(), { weekStartsOn: 1 }), weekOffset), 'MMM d, yyyy')}
+                    </>
+                  )}
+                </div>
+                
+                <button
+                  onClick={() => setWeekOffset(weekOffset + 1)}
+                  disabled={weekOffset >= 0}
+                  className="p-1.5 bg-surface hover:bg-background text-text-secondary rounded-lg transition-colors border border-border disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="Next Week"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </>
+            )}
+            
+            <button
+              onClick={() => {
+                setFilterWeek(!filterWeek)
+                if (filterWeek) {
+                  setWeekOffset(0) // Reset to current week when switching to All Time
+                }
+              }}
+              className={`px-3 py-1.5 text-xs sm:text-sm rounded-lg font-medium transition-colors whitespace-nowrap ${
+                filterWeek
+                  ? 'bg-accent text-white'
+                  : 'bg-surface text-text-secondary border border-border hover:bg-background'
+              }`}
+            >
+              {filterWeek ? 'This Week' : 'All Time'}
+            </button>
+          </div>
         </div>
 
         {/* Schedule View */}
@@ -353,7 +396,7 @@ const Dashboard = ({ onLogout, onTestNotification }) => {
             No activities logged yet. You'll be prompted every 30 minutes.
           </div>
         ) : (
-          <TimeBlockingSchedule logs={logs} onUpdate={() => refetch()} activities={activities} />
+          <TimeBlockingSchedule logs={logs} onUpdate={() => refetch()} activities={activities} weekOffset={weekOffset} />
         )}
       </main>
 
