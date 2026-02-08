@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import { format } from 'date-fns'
-import { useTimeLogs } from '../hooks/useTimeLogs'
+import { useTimeLogs, useBulkInsertTimeLogs } from '../hooks/useTimeLogs'
 import { useQueryClient } from '@tanstack/react-query'
 import { timeLogKeys } from '../hooks/useTimeLogs'
 import BulkSetModal from './BulkSetModal'
@@ -9,10 +9,12 @@ import TimeBlockingSchedule from './TimeBlockingSchedule'
 import ActivitySettingsModal from './ActivitySettingsModal'
 import ActivitySummaryTable from './ActivitySummaryTable'
 import Statistics from './Statistics'
+import SettingsModal from './SettingsModal'
 
-const Dashboard = ({ onLogout }) => {
+const Dashboard = ({ onLogout, onTestNotification }) => {
   const [showBulkModal, setShowBulkModal] = useState(false)
-  const [showSettingsModal, setShowSettingsModal] = useState(false)
+  const [showActivitySettingsModal, setShowActivitySettingsModal] = useState(false)
+  const [showAppSettingsModal, setShowAppSettingsModal] = useState(false)
   const [showStats, setShowStats] = useState(false)
   const [filterWeek, setFilterWeek] = useState(true)
   const [activities, setActivities] = useState([])
@@ -21,6 +23,104 @@ const Dashboard = ({ onLogout }) => {
   // Use React Query for data fetching with caching
   const { data: logs = [], isLoading: loading, refetch } = useTimeLogs(filterWeek)
   const queryClient = useQueryClient()
+  const bulkInsert = useBulkInsertTimeLogs()
+
+  // Auto-fill missing time slots with skipped entries
+  useEffect(() => {
+    const autoFillMissingSlots = async () => {
+      if (loading || logs.length === 0) return
+
+      try {
+        // Get checkpoint from localStorage (last time we checked)
+        const checkpoint = localStorage.getItem('autoFillCheckpoint')
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+
+        // Get all existing logs (not just filtered week) to find gaps
+        const { data: allLogs, error } = await supabase
+          .from('time_logs')
+          .select('timestamp')
+          .eq('user_id', user.id)
+          .order('timestamp', { ascending: true })
+        
+        if (error) throw error
+
+        // Determine start point: checkpoint OR first log timestamp OR account creation
+        let startTime
+        if (checkpoint) {
+          startTime = new Date(checkpoint)
+        } else if (allLogs && allLogs.length > 0) {
+          // Use first log as starting point
+          startTime = new Date(allLogs[0].timestamp)
+        } else {
+          // Use account creation time (user.created_at)
+          startTime = new Date(user.created_at)
+        }
+
+        // End time is 30 minutes ago (don't fill current slot)
+        const now = new Date()
+        const endTime = new Date(now.getTime() - 30 * 60 * 1000)
+
+        // If start is after end, nothing to fill
+        if (startTime >= endTime) {
+          localStorage.setItem('autoFillCheckpoint', now.toISOString())
+          return
+        }
+
+        // Generate all 30-minute slots from start to end (in IST)
+        const missingSlots = []
+        const existingTimestamps = new Set(allLogs.map(log => log.timestamp))
+        
+        let currentSlot = new Date(startTime)
+        // Align to nearest 30-min slot
+        const istMinute = parseInt(currentSlot.toLocaleString('en-US', { minute: '2-digit', timeZone: 'Asia/Kolkata' }))
+        if (istMinute < 30) {
+          currentSlot.setMinutes(0, 0, 0)
+        } else {
+          currentSlot.setMinutes(30, 0, 0)
+        }
+
+        while (currentSlot <= endTime) {
+          // Get IST hour for this slot
+          const istHour = parseInt(currentSlot.toLocaleString('en-US', { hour: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' }))
+          
+          // Skip sleep hours (1 AM - 9 AM IST)
+          const isSkipHour = istHour >= 1 && istHour < 9
+          
+          if (!isSkipHour) {
+            const timestamp = currentSlot.toISOString()
+            
+            // Check if this slot is missing
+            if (!existingTimestamps.has(timestamp)) {
+              missingSlots.push({
+                user_id: user.id,
+                timestamp: timestamp,
+                activity: null,
+                is_skipped: true
+              })
+            }
+          }
+
+          // Move to next 30-minute slot
+          currentSlot = new Date(currentSlot.getTime() + 30 * 60 * 1000)
+        }
+
+        // Bulk insert missing slots if any
+        if (missingSlots.length > 0) {
+          console.log(`Auto-filling ${missingSlots.length} missing time slots as skipped`)
+          await bulkInsert.mutateAsync(missingSlots)
+        }
+
+        // Update checkpoint to now
+        localStorage.setItem('autoFillCheckpoint', now.toISOString())
+      } catch (error) {
+        console.error('Error auto-filling missing slots:', error)
+      }
+    }
+
+    // Run auto-fill only once when logs are loaded
+    autoFillMissingSlots()
+  }, [loading]) // Only run when loading changes (once on mount)
 
   // Calculate time remaining until next prompt
   useEffect(() => {
@@ -141,6 +241,18 @@ const Dashboard = ({ onLogout }) => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
                 </button>
+                
+                {/* Settings Button */}
+                <button
+                  onClick={() => setShowAppSettingsModal(true)}
+                  className="p-1.5 hover:bg-accent/10 text-text-secondary hover:text-accent rounded-lg transition-colors"
+                  title="App Settings"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </button>
               </div>
               
               {/* Logout - Mobile */}
@@ -207,7 +319,7 @@ const Dashboard = ({ onLogout }) => {
               + Bulk Set
             </button>
             <button
-              onClick={() => setShowSettingsModal(true)}
+              onClick={() => setShowActivitySettingsModal(true)}
               className="px-3 py-1.5 text-xs sm:text-sm bg-surface hover:bg-accent/10 text-text-secondary hover:text-accent rounded-lg transition-all border border-border hover:border-accent/50 font-medium flex items-center gap-1.5 sm:gap-2 whitespace-nowrap"
               title="Activity Settings"
             >
@@ -245,10 +357,17 @@ const Dashboard = ({ onLogout }) => {
         )}
       </main>
 
-      {showSettingsModal && (
+      {showActivitySettingsModal && (
         <ActivitySettingsModal
-          onClose={() => setShowSettingsModal(false)}
+          onClose={() => setShowActivitySettingsModal(false)}
           onSave={(updated) => setActivities(updated)}
+        />
+      )}
+
+      {showAppSettingsModal && (
+        <SettingsModal
+          onClose={() => setShowAppSettingsModal(false)}
+          onTestNotification={onTestNotification}
         />
       )}
 
